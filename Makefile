@@ -64,32 +64,33 @@ release-test:
 	mkdir -p $(TEST_DIST)
 	cp $(EPITHET_DIR)/dist/epithet_*_*.tar.gz $(TEST_DIST)/
 	cp $(EPITHET_DIR)/dist/checksums.txt $(TEST_DIST)/
-	@# Step 3: Build macOS DMG
-	@echo "=== [3/6] Building epithet-macos DMG ==="
+	@# Step 3: Build macOS DMG (unsigned - skip notarization for test)
+	@echo "=== [3/6] Building epithet-macos DMG (unsigned) ==="
 	mkdir -p $(MACOS_DIR)/Resources
 	tar -xzf $$(ls $(TEST_DIST)/epithet_*_darwin_arm64.tar.gz | head -1) -C $(MACOS_DIR)/Resources/
-	$(MAKE) -C $(MACOS_DIR) dmg
-	cp $(MACOS_DIR)/.build/EpithetAgent.dmg $(TEST_DIST)/
+	$(MAKE) -C $(MACOS_DIR) bundle-release
+	hdiutil create -volname "EpithetAgent" -srcfolder $(MACOS_DIR)/.build/EpithetAgent.app \
+		-ov -format UDZO $(TEST_DIST)/EpithetAgent.dmg
 	@# Step 4: Generate homebrew formulas (to test dir, not real location)
 	@echo "=== [4/6] Generating homebrew formulas ==="
-	$(eval TEST_SHA_DARWIN_ARM64 := $(shell grep darwin_arm64 $(TEST_DIST)/checksums.txt | cut -d' ' -f1))
-	$(eval TEST_SHA_DARWIN_AMD64 := $(shell grep darwin_amd64 $(TEST_DIST)/checksums.txt | cut -d' ' -f1))
-	$(eval TEST_SHA_LINUX_ARM64 := $(shell grep linux_arm64 $(TEST_DIST)/checksums.txt | cut -d' ' -f1))
-	$(eval TEST_SHA_LINUX_AMD64 := $(shell grep linux_amd64 $(TEST_DIST)/checksums.txt | cut -d' ' -f1))
-	$(eval TEST_SHA_DMG := $(shell shasum -a 256 $(TEST_DIST)/EpithetAgent.dmg | cut -d' ' -f1))
-	sed -e 's/{{VERSION}}/$(TEST_V)/g' \
-	    -e 's/{{SHA_DARWIN_ARM64}}/$(TEST_SHA_DARWIN_ARM64)/g' \
-	    -e 's/{{SHA_DARWIN_AMD64}}/$(TEST_SHA_DARWIN_AMD64)/g' \
-	    -e 's/{{SHA_LINUX_ARM64}}/$(TEST_SHA_LINUX_ARM64)/g' \
-	    -e 's/{{SHA_LINUX_AMD64}}/$(TEST_SHA_LINUX_AMD64)/g' \
+	@SHA_DARWIN_ARM64=$$(grep darwin_arm64 $(TEST_DIST)/checksums.txt | cut -d' ' -f1) && \
+	SHA_DARWIN_AMD64=$$(grep darwin_amd64 $(TEST_DIST)/checksums.txt | cut -d' ' -f1) && \
+	SHA_LINUX_ARM64=$$(grep linux_arm64 $(TEST_DIST)/checksums.txt | cut -d' ' -f1) && \
+	SHA_LINUX_AMD64=$$(grep linux_amd64 $(TEST_DIST)/checksums.txt | cut -d' ' -f1) && \
+	sed -e "s/{{VERSION}}/$(TEST_V)/g" \
+	    -e "s/{{SHA_DARWIN_ARM64}}/$$SHA_DARWIN_ARM64/g" \
+	    -e "s/{{SHA_DARWIN_AMD64}}/$$SHA_DARWIN_AMD64/g" \
+	    -e "s/{{SHA_LINUX_ARM64}}/$$SHA_LINUX_ARM64/g" \
+	    -e "s/{{SHA_LINUX_AMD64}}/$$SHA_LINUX_AMD64/g" \
 	    templates/epithet.rb.tmpl > $(TEST_DIST)/epithet.rb
-	sed -e 's/{{VERSION}}/$(TEST_V)/g' \
-	    -e 's/{{SHA_DMG}}/$(TEST_SHA_DMG)/g' \
+	@SHA_DMG=$$(shasum -a 256 $(TEST_DIST)/EpithetAgent.dmg | cut -d' ' -f1) && \
+	sed -e "s/{{VERSION}}/$(TEST_V)/g" \
+	    -e "s/{{SHA_DMG}}/$$SHA_DMG/g" \
 	    templates/epithet-agent-mac.rb.tmpl > $(TEST_DIST)/epithet-agent-mac.rb
-	@# Step 5: Audit homebrew formulas
-	@echo "=== [5/6] Auditing homebrew formulas ==="
-	brew audit --strict $(TEST_DIST)/epithet.rb
-	brew audit --strict --cask $(TEST_DIST)/epithet-agent-mac.rb
+	@# Step 5: Validate homebrew formula syntax
+	@echo "=== [5/6] Validating homebrew formula syntax ==="
+	ruby -c $(TEST_DIST)/epithet.rb
+	ruby -c $(TEST_DIST)/epithet-agent-mac.rb
 	@# Step 6: Summary
 	@echo "=== [6/6] Release test complete ==="
 	@echo "Artifacts in $(TEST_DIST)/:"
@@ -122,12 +123,12 @@ $(EPITHET_CHECKSUMS):
 	cp $(EPITHET_DIR)/dist/checksums.txt $(EPITHET_CHECKSUMS)
 	@echo "=== epithet v$(V) released ==="
 
-# epithet-macos: build app with darwin_arm64 binary, create dmg, GitHub release.
+# epithet-macos: build app with darwin_arm64 binary, sign, notarize, create dmg, GitHub release.
 $(MACOS_DMG): $(EPITHET_CHECKSUMS)
 	@echo "=== Releasing epithet-macos v$(V) ==="
 	mkdir -p $(MACOS_DIR)/Resources
 	tar -xzf $(EPITHET_DIST)/epithet_$(V)_darwin_arm64.tar.gz -C $(MACOS_DIR)/Resources/
-	$(MAKE) -C $(MACOS_DIR) dmg
+	$(MAKE) -C $(MACOS_DIR) dmg-signed
 	cp $(MACOS_DIR)/.build/EpithetAgent.dmg $(MACOS_DMG)
 	cd $(MACOS_DIR) && git tag -a v$(V) -m "v$(V)"
 	cd $(MACOS_DIR) && git push origin v$(V)
@@ -146,31 +147,30 @@ epithet-aws: $(EPITHET_CHECKSUMS)
 .PHONY: homebrew-tap
 homebrew-tap: $(EPITHET_CHECKSUMS) $(MACOS_DMG) epithet-aws
 	@echo "=== Updating homebrew-tap to v$(V) ==="
-	$(eval SHA_DARWIN_ARM64 := $(shell grep darwin_arm64 $(EPITHET_CHECKSUMS) | cut -d' ' -f1))
-	$(eval SHA_DARWIN_AMD64 := $(shell grep darwin_amd64 $(EPITHET_CHECKSUMS) | cut -d' ' -f1))
-	$(eval SHA_LINUX_ARM64 := $(shell grep linux_arm64 $(EPITHET_CHECKSUMS) | cut -d' ' -f1))
-	$(eval SHA_LINUX_AMD64 := $(shell grep linux_amd64 $(EPITHET_CHECKSUMS) | cut -d' ' -f1))
-	$(eval SHA_DMG := $(shell shasum -a 256 $(MACOS_DMG) | cut -d' ' -f1))
 	@# Generate Formula from template
-	sed -e 's/{{VERSION}}/$(V)/g' \
-	    -e 's/{{SHA_DARWIN_ARM64}}/$(SHA_DARWIN_ARM64)/g' \
-	    -e 's/{{SHA_DARWIN_AMD64}}/$(SHA_DARWIN_AMD64)/g' \
-	    -e 's/{{SHA_LINUX_ARM64}}/$(SHA_LINUX_ARM64)/g' \
-	    -e 's/{{SHA_LINUX_AMD64}}/$(SHA_LINUX_AMD64)/g' \
-	    templates/epithet.rb.tmpl > $(HOMEBREW_DIR)/Formula/epithet.rb
+	@SHA_DARWIN_ARM64=$$(grep darwin_arm64 $(EPITHET_CHECKSUMS) | cut -d' ' -f1) && \
+	SHA_DARWIN_AMD64=$$(grep darwin_amd64 $(EPITHET_CHECKSUMS) | cut -d' ' -f1) && \
+	SHA_LINUX_ARM64=$$(grep linux_arm64 $(EPITHET_CHECKSUMS) | cut -d' ' -f1) && \
+	SHA_LINUX_AMD64=$$(grep linux_amd64 $(EPITHET_CHECKSUMS) | cut -d' ' -f1) && \
+	sed -e "s/{{VERSION}}/$(V)/g" \
+	    -e "s/{{SHA_DARWIN_ARM64}}/$$SHA_DARWIN_ARM64/g" \
+	    -e "s/{{SHA_DARWIN_AMD64}}/$$SHA_DARWIN_AMD64/g" \
+	    -e "s/{{SHA_LINUX_ARM64}}/$$SHA_LINUX_ARM64/g" \
+	    -e "s/{{SHA_LINUX_AMD64}}/$$SHA_LINUX_AMD64/g" \
+	    templates/epithet.rb.tmpl > $(HOMEBREW_DIR)/Formula/epithet.rb && \
+	echo "  darwin_arm64: $$SHA_DARWIN_ARM64" && \
+	echo "  darwin_amd64: $$SHA_DARWIN_AMD64" && \
+	echo "  linux_arm64:  $$SHA_LINUX_ARM64" && \
+	echo "  linux_amd64:  $$SHA_LINUX_AMD64"
 	@# Generate Cask from template
-	sed -e 's/{{VERSION}}/$(V)/g' \
-	    -e 's/{{SHA_DMG}}/$(SHA_DMG)/g' \
-	    templates/epithet-agent-mac.rb.tmpl > $(HOMEBREW_DIR)/Casks/epithet-agent-mac.rb
-	@echo "Generated homebrew formulas:"
-	@echo "  darwin_arm64: $(SHA_DARWIN_ARM64)"
-	@echo "  darwin_amd64: $(SHA_DARWIN_AMD64)"
-	@echo "  linux_arm64:  $(SHA_LINUX_ARM64)"
-	@echo "  linux_amd64:  $(SHA_LINUX_AMD64)"
-	@echo "  DMG:          $(SHA_DMG)"
-	@echo "=== Testing homebrew formulas ==="
-	brew audit --strict $(HOMEBREW_DIR)/Formula/epithet.rb
-	brew audit --strict --cask $(HOMEBREW_DIR)/Casks/epithet-agent-mac.rb
+	@SHA_DMG=$$(shasum -a 256 $(MACOS_DMG) | cut -d' ' -f1) && \
+	sed -e "s/{{VERSION}}/$(V)/g" \
+	    -e "s/{{SHA_DMG}}/$$SHA_DMG/g" \
+	    templates/epithet-agent-mac.rb.tmpl > $(HOMEBREW_DIR)/Casks/epithet-agent-mac.rb && \
+	echo "  DMG:          $$SHA_DMG"
+	@echo "=== Auditing homebrew formulas ==="
+	brew audit --strict epithet-ssh/tap/epithet
+	brew audit --strict --cask epithet-ssh/tap/epithet-agent-mac
 	cd $(HOMEBREW_DIR) && git add . && git commit -m "Update to v$(V)"
 	@echo "=== homebrew-tap updated ==="
 

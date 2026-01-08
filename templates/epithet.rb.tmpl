@@ -42,6 +42,6 @@ class Epithet < Formula
   end
 
   test do
-    system "#{bin}/epithet", "--version"
+    system bin/"epithet", "--version"
   end
 end
