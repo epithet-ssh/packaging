@@ -164,6 +164,7 @@ epithet-aws: $(EPITHET_CHECKSUMS)
 	@echo "=== Updating epithet-aws to v$(V) ==="
 	sed -i '' 's/^EPITHET_VERSION := v.*/EPITHET_VERSION := v$(V)/' $(AWS_DIR)/Makefile
 	cd $(AWS_DIR) && git add Makefile && git commit -m "Update epithet to v$(V)"
+	cd $(AWS_DIR) && git push
 	@echo "=== epithet-aws updated ==="
 
 # homebrew-tap: generate Formula + Cask from templates.
@@ -195,6 +196,7 @@ homebrew-tap: $(EPITHET_CHECKSUMS) $(MACOS_DMG) epithet-aws
 	brew audit --strict epithet-ssh/tap/epithet
 	brew audit --strict --cask epithet-ssh/tap/epithet-agent-mac
 	cd $(HOMEBREW_DIR) && git add . && git commit -m "Update to v$(V)"
+	cd $(HOMEBREW_DIR) && git push
 	@echo "=== homebrew-tap updated ==="
 
 # Dev/testing targets.
