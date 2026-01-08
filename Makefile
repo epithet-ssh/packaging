@@ -13,7 +13,14 @@
 # Dependency chain:
 #   epithet -> {epithet-aws, epithet-macos} -> homebrew-tap
 #
-# Requires: svu (go install github.com/caarlos0/svu/v3@latest)
+# Requires:
+#   - svu (go install github.com/caarlos0/svu/v3@latest)
+#   - goreleaser (brew install goreleaser)
+#   - gh CLI (brew install gh) - authenticated
+#   - .envrc with Apple credentials (for notarization)
+
+# GitHub token for goreleaser and gh - get from gh CLI if not set.
+export GITHUB_TOKEN ?= $(shell gh auth token 2>/dev/null)
 
 # Sibling repo paths.
 EPITHET_DIR = ../epithet

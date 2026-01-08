@@ -1,4 +1,6 @@
 .claude
+.tasks
+
 # Secrets
 .envrc
 
