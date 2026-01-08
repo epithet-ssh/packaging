@@ -3,7 +3,7 @@ yatl_version: 1
 title: Virtual Monorepo for epithet-ssh Projects
 id: cnfj57dx
 created: 2026-01-07T03:36:22.716193Z
-updated: 2026-01-08T04:24:28.198474Z
+updated: 2026-01-08T05:06:40.103732Z
 author: Brian McCallister
 priority: medium
 tags:
@@ -428,3 +428,8 @@ Moved Apple notarization credentials to packaging/.envrc, added .gitignore
 # Log: 2026-01-08T04:24:28Z Brian McCallister
 
 Added make release-test to exercise full pipeline without side effects
+
+---
+# Log: 2026-01-08T05:06:40Z Brian McCallister
+
+Closed: Implemented packaging repo with unified release automation via Makefile. Releases tested with v0.6.1 and v0.6.2.
