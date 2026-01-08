@@ -19,9 +19,6 @@
 #   - gh CLI (brew install gh) - authenticated
 #   - .envrc with Apple credentials (for notarization)
 
-# GitHub token for goreleaser and gh - get from gh CLI if not set.
-export GITHUB_TOKEN ?= $(shell gh auth token 2>/dev/null)
-
 # Sibling repo paths.
 EPITHET_DIR = ../epithet
 MACOS_DIR = ../epithet-macos
@@ -53,8 +50,27 @@ MACOS_DMG = dist/EpithetAgent-$(V).dmg
 
 # Top-level release target.
 .PHONY: release
-release: homebrew-tap
+release: check-env homebrew-tap
 	@echo "=== Release v$(V) complete ==="
+
+# Verify required environment variables are set.
+.PHONY: check-env
+check-env:
+ifndef GITHUB_TOKEN
+	$(error GITHUB_TOKEN is not set. Run: export GITHUB_TOKEN=$$(gh auth token))
+endif
+ifndef TEAM_ID
+	$(error TEAM_ID is not set. Run: direnv allow)
+endif
+ifndef DEVELOPER_ID
+	$(error DEVELOPER_ID is not set. Run: direnv allow)
+endif
+ifndef APP_PASSWORD
+	$(error APP_PASSWORD is not set. Run: direnv allow)
+endif
+ifndef APPLE_ID
+	$(error APPLE_ID is not set. Run: direnv allow)
+endif
 
 # Test the release pipeline without pushing tags, releases, or commits.
 .PHONY: release-test
