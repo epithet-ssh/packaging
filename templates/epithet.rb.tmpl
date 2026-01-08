@@ -1,0 +1,47 @@
+class Epithet < Formula
+  desc "SSH certificate management"
+  homepage "https://epithet.dev/"
+  version "{{VERSION}}"
+  license "Apache-2.0"
+
+  on_macos do
+    if Hardware::CPU.arm?
+      url "https://github.com/epithet-ssh/epithet/releases/download/v{{VERSION}}/epithet_{{VERSION}}_darwin_arm64.tar.gz"
+      sha256 "{{SHA_DARWIN_ARM64}}"
+    else
+      url "https://github.com/epithet-ssh/epithet/releases/download/v{{VERSION}}/epithet_{{VERSION}}_darwin_amd64.tar.gz"
+      sha256 "{{SHA_DARWIN_AMD64}}"
+    end
+  end
+
+  on_linux do
+    if Hardware::CPU.arm?
+      url "https://github.com/epithet-ssh/epithet/releases/download/v{{VERSION}}/epithet_{{VERSION}}_linux_arm64.tar.gz"
+      sha256 "{{SHA_LINUX_ARM64}}"
+    else
+      url "https://github.com/epithet-ssh/epithet/releases/download/v{{VERSION}}/epithet_{{VERSION}}_linux_amd64.tar.gz"
+      sha256 "{{SHA_LINUX_AMD64}}"
+    end
+  end
+
+  def install
+    bin.install "epithet"
+  end
+
+  def caveats
+    <<~EOS
+      To start the agent:
+        brew services start epithet
+    EOS
+  end
+
+  service do
+    run [opt_bin/"epithet", "--log-file=#{Dir.home}/Library/logs/dev.epithet/agent.log", "agent"]
+    keep_alive true
+    process_type :background
+  end
+
+  test do
+    system "#{bin}/epithet", "--version"
+  end
+end

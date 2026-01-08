@@ -1,0 +1,11 @@
+cask "epithet-agent-mac" do
+  version "{{VERSION}}"
+  sha256 "{{SHA_DMG}}"
+
+  url "https://github.com/epithet-ssh/epithet-macos/releases/download/v#{version}/EpithetAgent.dmg"
+  name "Epithet Agent"
+  desc "SSH certificate management desktop app"
+  homepage "https://github.com/epithet-ssh/epithet-macos"
+
+  app "EpithetAgent.app"
+end

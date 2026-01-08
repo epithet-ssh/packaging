@@ -1,0 +1,5 @@
+# Secrets
+.envrc
+
+# Build artifacts
+dist/
