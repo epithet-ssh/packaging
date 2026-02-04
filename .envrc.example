@@ -1,8 +1,0 @@
-# Apple notarization credentials for epithet-macos releases.
-# Copy this to .envrc and fill in your values.
-# .envrc is gitignored and will not be committed.
-
-export TEAM_ID="YOUR_TEAM_ID"
-export APP_PASSWORD="your-app-specific-password"
-export DEVELOPER_ID="Developer ID Application: Your Name (YOUR_TEAM_ID)"
-export APPLE_ID="your@apple.id"

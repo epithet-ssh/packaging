@@ -12,31 +12,18 @@ make release
      ▼
   epithet (goreleaser → GitHub release)
      │
-  ┌──┴──┐
-  ▼     ▼
-epithet-aws    epithet-macos (GitHub release)
-(commit)            │
-  │                 │
-  └────────┬────────┘
-           ▼
-     homebrew-tap
-     (commit)
+     ├──────────┐
+     ▼          ▼
+epithet-aws    homebrew-tap
+(commit)       (commit - formula)
 ```
 
-All projects share the same version number.
+**Note:** epithet-macos releases independently from its own repository with separate versioning.
 
 ## Prerequisites
 
 ```bash
 brew install svu goreleaser gh
-```
-
-For macOS app notarization, copy `.envrc.example` to `.envrc` and fill in your Apple Developer credentials:
-
-```bash
-cp .envrc.example .envrc
-# Edit .envrc with your credentials
-direnv allow
 ```
 
 ## Usage
@@ -77,8 +64,8 @@ make next-version
 ### Local build
 
 ```bash
-# Build epithet and epithet-macos locally
-make build-all
+# Build epithet locally
+make build
 
 # Snapshot build (no release)
 make snapshot
@@ -90,10 +77,7 @@ make snapshot
 packaging/
 ├── Makefile                      # Release automation
 ├── templates/
-│   ├── epithet.rb.tmpl           # Homebrew formula template
-│   └── epithet-agent-mac.rb.tmpl # Homebrew cask template
-├── .envrc.example                # Credential template
-├── .envrc                        # Your credentials (gitignored)
+│   └── epithet.rb.tmpl           # Homebrew formula template
 └── dist/                         # Build artifacts (gitignored)
 ```
 
@@ -105,7 +89,8 @@ This repo expects sibling checkouts:
 epithet-ssh/
 ├── packaging/      # This repo
 ├── epithet/        # Core binary
-├── epithet-macos/  # macOS app
 ├── epithet-aws/    # AWS deployment
 └── homebrew-tap/   # Homebrew formulas
 ```
+
+epithet-macos is developed and released independently - see [epithet-ssh/epithet-macos](https://github.com/epithet-ssh/epithet-macos) for details.

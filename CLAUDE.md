@@ -7,11 +7,12 @@ This file provides guidance to Claude Code when working with code in this reposi
 This is the release orchestration repo for epithet-ssh projects. It coordinates releases across:
 
 - **epithet** - Core Go binary (goreleaser)
-- **epithet-macos** - macOS menubar app (Swift)
 - **epithet-aws** - AWS Lambda deployment template (Terraform)
-- **homebrew-tap** - Homebrew formulas and casks
+- **homebrew-tap** - Homebrew formula
 
 All projects share unified versioning driven from the epithet repo.
+
+**Note:** epithet-macos releases independently from its own repository and is not part of this coordinated release pipeline.
 
 ## Task management
 
@@ -41,9 +42,6 @@ You must NOT:
 
 - `Makefile` - All release automation
 - `templates/epithet.rb.tmpl` - Homebrew formula template
-- `templates/epithet-agent-mac.rb.tmpl` - Homebrew cask template
-- `.envrc` - Apple notarization credentials (gitignored)
-- `.envrc.example` - Template for credentials
 
 ## Makefile targets
 
@@ -64,11 +62,10 @@ You must NOT:
 1. `make release` (or with VERSION=)
 2. Tests epithet (`make test`)
 3. Tags and releases epithet via goreleaser
-4. Builds epithet-macos DMG, tags and releases
-5. Updates epithet-aws Makefile (commit only, no tag)
-6. Generates homebrew formulas from templates
-7. Audits formulas with `brew audit --strict`
-8. Commits to homebrew-tap
+4. Updates epithet-aws Makefile (commit only, no tag)
+5. Generates homebrew formula from template
+6. Audits formula with `brew audit --strict`
+7. Commits to homebrew-tap
 
 ## Version management
 
@@ -84,4 +81,3 @@ Commit prefixes:
 - `svu` - `brew install svu`
 - `goreleaser` - `brew install goreleaser`
 - `gh` - GitHub CLI for releases
-- Apple Developer credentials in `.envrc` for notarization
